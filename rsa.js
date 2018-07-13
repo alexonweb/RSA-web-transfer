@@ -36,12 +36,6 @@ var RSAtransfer = function () {
 
         self.server_public_key = localStorage.getItem("server_public_key");
 
-        if ( self.server_public_key ) {
-
-            clearInterval(waitForClientPublicKey);
-
-        }
-
     }, 500);
 
 
@@ -56,15 +50,18 @@ RSAtransfer.prototype.generateKeys = function() {
 
     var crypt = new JSEncrypt( {default_key_size: keySize} );
 
-    crypt.getKey();
+    // Асинхронный метод!
+    crypt.getKey( function() {
 
-    this.client_public_key = crypt.getPublicKey();
+        this.client_private_key = crypt.getPrivateKey();
 
-    localStorage.setItem("client_public_key", this.client_public_key);
+        localStorage.setItem("client_private_key", this.client_private_key);
+    
+        this.client_public_key = crypt.getPublicKey();
+    
+        localStorage.setItem("client_public_key", this.client_public_key);
 
-    this.client_private_key = crypt.getPrivateKey();
-
-    localStorage.setItem("client_private_key", this.client_private_key);
+    } );
 
 };
 
@@ -75,11 +72,15 @@ RSAtransfer.prototype.keyExchange = function() {
     this.client_public_key = localStorage.getItem("client_public_key");
 
     if ( this.client_public_key ) {
+        
+        clearInterval(waitForClientPublicKey);
 
         // 
         $.post("keyExchange.php", {clientPublicKey: this.client_public_key}, function(data) {
 
-            localStorage.setItem("server_public_key", data);
+            if (data) {
+                localStorage.setItem("server_public_key", data);
+            }
 
         });
 
